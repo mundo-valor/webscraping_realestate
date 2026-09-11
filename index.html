@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ValuData Scraping · Datos de mercado para valuación</title>
+<style>
+:root{
+  --navy:#071629; --navy2:#0b213d; --blue:#123e69; --cyan:#16d8e7;
+  --cyan2:#74f4fb; --ice:#eafcff; --text:#dce8f4; --muted:#8fa8bf;
+  --line:rgba(116,244,251,.16); --card:rgba(13,34,60,.78); --ok:#42e6a4;
+  --warn:#ffd166; --danger:#ff6b7a;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:
+ radial-gradient(circle at 80% 5%,rgba(22,216,231,.14),transparent 30%),
+ linear-gradient(145deg,#050e1c,#091a30 52%,#061321);color:var(--text);min-height:100vh}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.18;background-image:
+ linear-gradient(rgba(116,244,251,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(116,244,251,.05) 1px,transparent 1px);
+ background-size:44px 44px}
+.container{width:min(1380px,94%);margin:auto}
+header{padding:34px 0 18px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;border:1px solid var(--cyan);border-radius:14px;display:grid;place-items:center;
+ box-shadow:0 0 30px rgba(22,216,231,.22);background:linear-gradient(145deg,#0c2948,#08182b)}
+.logo span{font-weight:900;color:var(--cyan);font-size:20px}
+.brand h1{margin:0;font-size:20px;letter-spacing:.5px}.brand small{color:var(--muted)}
+.status{font-size:12px;color:var(--ok);border:1px solid rgba(66,230,164,.25);padding:8px 12px;border-radius:999px;background:rgba(66,230,164,.06)}
+.hero{padding:30px 0 34px;max-width:900px}
+.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.hero h2{font-size:clamp(34px,5vw,62px);line-height:1.02;margin:12px 0;background:linear-gradient(90deg,#fff,#9ef8ff,#b9c9ff);-webkit-background-clip:text;color:transparent}
+.hero p{font-size:17px;color:#abc0d4;line-height:1.65;max-width:780px}
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0 34px}
+.pipe{padding:13px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(9,28,50,.58);text-align:center;font-size:12px;color:#aac1d4}
+.pipe b{display:block;color:var(--ice);font-size:13px;margin-bottom:4px}.pipe.active{border-color:rgba(22,216,231,.6);box-shadow:0 0 22px rgba(22,216,231,.08)}
+.grid{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
+.card{border:1px solid var(--line);background:var(--card);backdrop-filter:blur(14px);border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.22);overflow:hidden}
+.cardhead{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.cardhead h3{margin:0;font-size:15px}.count{font-size:11px;color:var(--cyan);background:rgba(22,216,231,.08);padding:5px 8px;border-radius:999px}
+.cardbody{padding:18px}
+.types{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.type{border:1px solid var(--line);border-radius:13px;padding:13px 11px;background:rgba(5,18,33,.38);cursor:pointer;transition:.2s}
+.type:hover{transform:translateY(-1px);border-color:rgba(116,244,251,.35)}
+.type.selected{border-color:var(--cyan);background:rgba(22,216,231,.09);box-shadow:inset 0 0 0 1px rgba(22,216,231,.12)}
+.type .ico{font-size:22px}.type b{display:block;font-size:12px;margin-top:6px}.type small{color:var(--muted);font-size:10px}
+.variables{max-height:430px;overflow:auto;padding-right:3px}
+.var{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid rgba(116,244,251,.06)}
+.var input{accent-color:var(--cyan)}.var label{font-size:12px;flex:1}.code{font-size:10px;color:var(--cyan);font-family:monospace}
+.field{margin-bottom:12px}.field label{display:block;color:#a9bfd2;font-size:11px;font-weight:700;margin-bottom:6px}
+textarea,input[type=text]{width:100%;background:#061426;border:1px solid var(--line);color:white;border-radius:10px;padding:11px;font:inherit;outline:none}
+textarea:focus,input[type=text]:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(22,216,231,.08)}
+textarea{min-height:150px;resize:vertical}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:13px}
+button{border:0;border-radius:10px;padding:11px 15px;font-weight:800;cursor:pointer;color:#04131f;background:var(--cyan)}
+button.secondary{background:#102a46;color:#dce8f4;border:1px solid var(--line)}
+button.ghost{background:transparent;color:var(--cyan);border:1px solid rgba(22,216,231,.35)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.right{display:grid;gap:18px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{padding:16px;border:1px solid var(--line);border-radius:14px;background:rgba(9,28,50,.62)}
+.kpi .v{font-size:25px;font-weight:900;color:#fff}.kpi .l{font-size:10px;color:var(--muted);margin-top:4px}
+.progress{height:8px;background:#061426;border-radius:20px;overflow:hidden;margin:10px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),#9cf8ff);transition:width .35s}
+.log{height:145px;overflow:auto;background:#04101e;border-radius:11px;padding:10px;font:11px/1.7 ui-monospace,monospace;color:#8edee5}
+.log .ok{color:var(--ok)}.log .warn{color:var(--warn)}
+.tablewrap{overflow:auto;max-height:520px}
+table{border-collapse:collapse;width:100%;font-size:11px;min-width:1050px}
+th{position:sticky;top:0;background:#0a2038;color:var(--cyan);text-align:left;padding:10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid rgba(116,244,251,.07);white-space:nowrap}
+tr:hover td{background:rgba(22,216,231,.035)}
+.badge{padding:4px 7px;border-radius:999px;background:rgba(66,230,164,.08);color:var(--ok);font-size:9px}
+footer{padding:26px 0 40px;color:#7892aa;font-size:11px;line-height:1.6}
+.legal{border:1px solid rgba(255,209,102,.2);background:rgba(255,209,102,.05);padding:13px 15px;border-radius:12px;color:#c8b98b;font-size:11px;margin-top:12px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#9eb2c5}.check input{margin-top:2px;accent-color:var(--cyan)}
+@media(max-width:980px){.grid{grid-template-columns:1fr}.pipeline{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.types{grid-template-columns:1fr}.pipeline{grid-template-columns:1fr}.hero h2{font-size:38px}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <div class="brand"><div class="logo"><span>VD</span></div><div><h1>ValuData Scraping</h1><small>Market Intelligence · Ciencia de Datos para Valuación</small></div></div>
+  <div class="status">● DEMO FUNCIONAL</div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">Plataforma de datos inmobiliarios</div>
+  <h2>De la URL al dato estructurado para valuación.</h2>
+  <p>Configure el tipo de inmueble, seleccione las variables explicativas, incorpore URLs y ejecute un flujo de extracción, normalización y control de calidad. Esta versión incluye un <b>motor de scraping simulado</b> para probar la interfaz sin acceder automáticamente a terceros.</p>
+</section>
+
+<div class="pipeline">
+  <div class="pipe active"><b>01 · Inmueble</b>Perfil de variables</div>
+  <div class="pipe active"><b>02 · Variables</b>Selección dinámica</div>
+  <div class="pipe"><b>03 · URLs</b>Carga múltiple</div>
+  <div class="pipe"><b>04 · Scraping</b>Extracción + QA</div>
+  <div class="pipe"><b>05 · Dataset</b>CSV / Excel</div>
+</div>
+
+<div class="grid">
+<aside class="card">
+  <div class="cardhead"><h3>01 · Tipo de inmueble</h3><span class="count" id="varCount">0 variables</span></div>
+  <div class="cardbody">
+    <div class="types" id="types"></div>
+    <div style="height:15px"></div>
+    <div class="cardhead" style="padding:0 0 12px;border:0"><h3>02 · Variables explicativas</h3><button class="ghost" id="toggleAll" style="padding:6px 9px;font-size:10px">Deseleccionar</button></div>
+    <div class="variables" id="variables"></div>
+  </div>
+</aside>
+
+<main class="right">
+  <section class="card">
+    <div class="cardhead"><h3>03 · URLs de mercado</h3><span class="count" id="urlCount">0 URLs</span></div>
+    <div class="cardbody">
+      <div class="field"><label>Una URL por línea · páginas que tengas derecho a consultar</label>
+      <textarea id="urls" placeholder="https://ejemplo.com/inmueble/12345&#10;https://ejemplo.com/inmueble/67890"></textarea></div>
+      <label class="check"><input type="checkbox" id="legalCheck"> Confirmo que las URLs introducidas pueden ser consultadas mediante automatización y que respetaré los términos de uso, robots.txt, límites de frecuencia, derechos de contenido y normativa aplicable.</label>
+      <div class="actions">
+        <button class="secondary" id="validate">Validar URLs</button>
+        <button id="scrape" disabled>▶ Ejecutar scraping simulado</button>
+        <button class="ghost" id="clear">Limpiar</button>
+      </div>
+      <div class="legal">Modo demo: un navegador no puede hacer scraping arbitrario de otros dominios por CORS y controles del sitio. Para producción, conecta un backend autorizado por portal, con rate limiting, trazabilidad, gestión de errores y reglas específicas de extracción.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="cardhead"><h3>04 · Motor de extracción</h3><span class="count" id="stage">LISTO</span></div>
+    <div class="cardbody">
+      <div class="kpis">
+        <div class="kpi"><div class="v" id="kUrls">0</div><div class="l">URLs válidas</div></div>
+        <div class="kpi"><div class="v" id="kRows">0</div><div class="l">Registros</div></div>
+        <div class="kpi"><div class="v" id="kFields">0</div><div class="l">Campos / registro</div></div>
+        <div class="kpi"><div class="v" id="kQuality">—</div><div class="l">Calidad extracción</div></div>
+      </div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="log" id="log">[sistema] Esperando URLs y configuración…</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="cardhead"><h3>05 · Base de datos resultante</h3>
+      <div class="actions" style="margin:0"><button class="secondary" id="csv" disabled>CSV</button><button class="secondary" id="xls" disabled>Excel</button></div>
+    </div>
+    <div class="tablewrap"><table id="results"><thead></thead><tbody></tbody></table></div>
+  </section>
+</main>
+</div>
+
+<footer>
+  <b>ValuData Scraping — arquitectura preparada para una plataforma profesional.</b><br>
+  La versión demo genera datos sintéticos para probar el flujo. La versión productiva debe implementar conectores/backend específicos por fuente, normalización de unidades, diccionario de sinónimos, evidencia del dato, fecha/hora de captura, geocodificación, cálculo de DPV, detección de duplicados y controles de calidad antes de incorporar observaciones al dataset de valuación.
+</footer>
+</div>
+
+<script>
+const profiles={
+"Vivienda unifamiliar":{i:"🏠",c:"VU",v:[
+["PT","Precio Total"],["PU","Precio Unitario"],["Ac","Área construida (m²)"],["At","Área de terreno (m²)"],["Ha","Habitaciones"],["Ba","Baños"],["Aseos","Aseos"],["TC","Tipo de construcción"],["Np","Número de plantas"],["Ter","Terraza (m²)"],["Bal","Balcón"],["Jar","Jardín (m²)"],["Pisc","Piscina"],["Gar","Garaje / cochera"],["Ori","Orientación"],["Ant","Antigüedad (años)"],["Ca","Calidad de construcción"],["EC","Estado de conservación"],["DPV","Distancia al Polo Valorizante (m)"],["Fe","Fecha"]]},
+"Piso / apartamento":{i:"🏢",c:"PA",v:[
+["PT","Precio Total"],["PU","Precio Unitario"],["Ac","Área construida (m²)"],["Ha","Habitaciones"],["Ba","Baños"],["Aseos","Aseos"],["Pi","Piso de ubicación"],["Npe","Pisos del edificio"],["Nap","Apartamentos por piso"],["Asc","Ascensor"],["Ext","Exterior / interior"],["Ori","Orientación"],["Ter","Terraza (m²)"],["Bal","Balcón"],["Tras","Trastero"],["Gar","Garaje / cochera"],["Ant","Antigüedad (años)"],["Ca","Calidad de construcción"],["EC","Estado de conservación"],["AA","Aire acondicionado"],["Cal","Calefacción"],["DPV","Distancia al Polo Valorizante (m)"],["Fe","Fecha"]]},
+"Local comercial":{i:"🏪",c:"LC",v:[
+["PT","Precio Total"],["PU","Precio Unitario"],["Ac","Área construida (m²)"],["At","Área de terreno (m²)"],["Fac","Fachada (m)"],["Alt","Altura libre (m)"],["Nesc","Número de escaparates"],["Pc","Planta comercial"],["Altillo","Altillo"],["Sot","Sótano"],["Alm","Almacén (m²)"],["Aseos","Aseos"],["Gar","Garaje / cochera"],["Fp","Flujo peatonal"],["Fv","Flujo vehicular"],["Lic","Licencia de actividad"],["AA","Aire acondicionado"],["Cal","Calefacción"],["Ant","Antigüedad (años)"],["EC","Estado de conservación"],["DPV","Distancia al Polo Valorizante (m)"],["Fe","Fecha"]]},
+"Oficina":{i:"🏢",c:"OF",v:[
+["PT","Precio Total"],["PU","Precio Unitario"],["Ac","Área construida (m²)"],["Pi","Piso de ubicación"],["Ha","Habitaciones / ambientes"],["Ba","Baños"],["Nd","Número de despachos"],["Pt","Puestos de trabajo"],["Asc","Ascensor"],["Rec","Recepción"],["Sr","Sala de reuniones"],["Red","Cableado / red"],["Por","Portero"],["AA","Aire acondicionado"],["Cal","Calefacción"],["Gar","Garaje / cochera"],["Ant","Antigüedad (años)"],["Ca","Calidad de construcción"],["EC","Estado de conservación"],["DPV","Distancia al Polo Valorizante (m)"],["Fe","Fecha"]]},
+"Nave industrial":{i:"🏭",c:"NI",v:[
+["PT","Precio Total"],["PU","Precio Unitario"],["Ac","Área construida (m²)"],["At","Área de terreno (m²)"],["Sn","Superficie de nave (m²)"],["So","Superficie de oficinas (m²)"],["Te","Tipo de estructura"],["Alt","Altura libre de nave (m)"],["Le","Luz estructural (m)"],["Pg","Puente grúa"],["Cpg","Capacidad del puente grúa (t)"],["Mc","Montacargas"],["Pe","Potencia eléctrica"],["Atg","Acceso para tráiler"],["Pat","Patio (m²)"],["Gar","Garaje / cochera"],["Ant","Antigüedad (años)"],["Ca","Calidad de construcción"],["EC","Estado de conservación"],["DPV","Distancia al Polo Valorizante (m)"],["Fe","Fecha"]]},
+"Terreno urbano":{i:"🌐",c:"TU",v:[
+["PT","Precio Total"],["PU","Precio Unitario"],["At","Área de terreno (m²)"],["Fr","Frente de parcela (m)"],["Fo","Fondo de parcela (m)"],["Fp","Forma de parcela"],["Top","Topografía"],["Pen","Pendiente (%)"],["UU","Uso urbanístico"],["Ed","Edificabilidad (m²)"],["Ce","Coeficiente de edificabilidad"],["Om","Ocupación máxima (%)"],["Npp","Plantas permitidas"],["Apr","Aprovechamiento urbanístico"],["Su","Servicios urbanos"],["DPV","Distancia al Polo Valorizante (m)"],["Fe","Fecha"]]},
+"Garaje / plaza de aparcamiento":{i:"🚗",c:"GA",v:[
+["PT","Precio Total"],["PU","Precio Unitario"],["A","Área (m²)"],["Pi","Piso de ubicación"],["Cub","Plaza cubierta"],["Cer","Plaza cerrada"],["Anc","Anchura de plaza (m)"],["Lon","Longitud de plaza (m)"],["Fac","Facilidad de acceso"],["Pa","Puerta automática"],["Seg","Seguridad"],["Ant","Antigüedad (años)"],["EC","Estado de conservación"],["DPV","Distancia al Polo Valorizante (m)"],["Fe","Fecha"]]},
+"Edificio residencial":{i:"🏢",c:"ER",v:[
+["PT","Precio Total"],["PU","Precio Unitario"],["Ac","Área construida (m²)"],["At","Área de terreno (m²)"],["Sc","Superficie comercial (m²)"],["Sr","Superficie residencial (m²)"],["Nv","Número de viviendas"],["Nl","Número de locales"],["Np","Número de plantas"],["Na","Número de ascensores"],["Ant","Antigüedad (años)"],["Smv","Superficie media por vivienda (m²)"],["Pa","Porcentaje alquilado (%)"],["Rm","Renta mensual"],["Rent","Rentabilidad (%)"],["IBI","IBI"],["Ca","Calidad de construcción"],["EC","Estado de conservación"],["DPV","Distancia al Polo Valorizante (m)"],["Fe","Fecha"]]}
+};
+let current="Vivienda unifamiliar", data=[], selected=new Set(profiles[current].v.map(x=>x[0]));
+
+const types=document.getElementById("types"), variables=document.getElementById("variables");
+function renderTypes(){
+ types.innerHTML=Object.entries(profiles).map(([n,p])=>`<div class="type ${n===current?'selected':''}" data-name="${n}"><span class="ico">${p.i}</span><b>${n}</b><small>${p.c} · ${p.v.length} variables</small></div>`).join("");
+ document.querySelectorAll(".type").forEach(e=>e.onclick=()=>{current=e.dataset.name;selected=new Set(profiles[current].v.map(x=>x[0]));renderTypes();renderVars();});
+}
+function renderVars(){
+ variables.innerHTML=profiles[current].v.map(([c,n])=>`<div class="var"><input type="checkbox" data-code="${c}" ${selected.has(c)?"checked":""}><label>${n}</label><span class="code">${c}</span></div>`).join("");
+ variables.querySelectorAll("input").forEach(x=>x.onchange=()=>{x.checked?selected.add(x.dataset.code):selected.delete(x.dataset.code);updateCount();});
+ updateCount();
+}
+function updateCount(){document.getElementById("varCount").textContent=`${selected.size} variables`;}
+document.getElementById("toggleAll").onclick=()=>{const all=selected.size===profiles[current].v.length;selected=all?new Set():new Set(profiles[current].v.map(x=>x[0]));renderVars();document.getElementById("toggleAll").textContent=all?"Seleccionar todo":"Deseleccionar";};
+
+function getUrls(){return document.getElementById("urls").value.split(/\n|,/).map(x=>x.trim()).filter(Boolean)}
+function updateUrls(){let n=getUrls().length;document.getElementById("urlCount").textContent=`${n} URLs`;document.getElementById("scrape").disabled=!(n&&document.getElementById("legalCheck").checked&&selected.size)}
+document.getElementById("urls").oninput=updateUrls;document.getElementById("legalCheck").onchange=updateUrls;
+
+document.getElementById("validate").onclick=()=>{
+ const u=getUrls(), valid=u.filter(x=>/^https?:\/\/.+/i.test(x));
+ const log=document.getElementById("log"); log.innerHTML=`[validación] ${u.length} URL(s) detectadas.<br>`+
+ valid.map(x=>`<span class="ok">[OK]</span> ${x}`).join("<br>")+
+ (u.length!==valid.length?`<br><span class="warn">[AVISO]</span> ${u.length-valid.length} entrada(s) no parecen URL válidas.`:"");
+ document.getElementById("kUrls").textContent=valid.length;updateUrls();
+};
+
+function fakeValue(code, idx){
+ const nums={PT: [185000,420000],Ac:[58,210],At:[70,650],Ha:[2,5],Ba:[1,3],Ant:[3,42],Pi:[1,8],Npe:[4,12],Nap:[2,6],Ter:[5,35],Jar:[20,240],Fac:[4,18],Alt:[2.7,5.5],Nesc:[1,6],Alm:[5,80],Nd:[2,12],Pt:[4,35],Sn:[600,6000],So:[30,600],Altillo:[0,1],Pat:[100,1800],Le:[10,30],Cpg:[0,20],Pe:[50,1000],A:[11,32],Fr:[6,28],Fo:[10,45],Pen:[0,18],Ed:[80,2500],Ce:[.2,3],Om:[20,90],Npp:[1,8],Nv:[4,80],Nl:[0,15],Na:[1,6],Smv:[55,130],Pa:[0,100],Rm:[500,12000],Rent:[2,9],IBI:[250,9000],DPV:[80,4200]};
+ if(code==="PU") return null;
+ if(code==="Fe") return new Date().toISOString().slice(0,10);
+ if(["Asc","Bal","Pisc","Gar","AA","Cal","Ext","Tras","Sot","Lic","Fp","Fv","Pg","Mc","Atg","Cub","Cer","Pa","Seg","Rec","Sr","Red","Por"].includes(code)) return Math.random()>.35?"Sí":"No";
+ if(["Ori"].includes(code)) return ["N","NE","E","SE","S","SO","O","NO"][Math.floor(Math.random()*8)];
+ if(["EC"].includes(code)) return ["Excelente","Bueno","Regular"][Math.floor(Math.random()*3)];
+ if(["Ca"].includes(code)) return ["Alta","Media","Económica"][Math.floor(Math.random()*3)];
+ if(["TC","Te","Fp","Top","UU","Su","Apr","Fac"].includes(code)) return ["Aislada","Hormigón","Regular","Residencial","Consolidado"][Math.floor(Math.random()*5)];
+ let r=nums[code]; if(!r)return "—"; let v=r[0]+Math.random()*(r[1]-r[0]); return Number.isInteger(r[0])?Math.round(v):v.toFixed(2);
+}
+function buildData(urls){
+ const vars=profiles[current].v.filter(x=>selected.has(x[0]));
+ return urls.map((url,i)=>{
+   let row={ID:`${profiles[current].c}-${String(i+1).padStart(4,"0")}`,TIPO_INMUEBLE:current,URL:url,PORTAL:(new URL(url)).hostname,FECHA_SCRAPING:new Date().toISOString()};
+   vars.forEach(([c,n])=>row[c]=fakeValue(c,i));
+   if(row.PT && row.Ac) row.PU=(Number(row.PT)/Number(row.Ac)).toFixed(2);
+   return row;
+ });
+}
+function renderTable(){
+ const head=document.querySelector("#results thead"),body=document.querySelector("#results tbody");
+ if(!data.length){head.innerHTML="";body.innerHTML="";return}
+ const keys=Object.keys(data[0]);head.innerHTML="<tr>"+keys.map(k=>`<th>${k}</th>`).join("")+"</tr>";
+ body.innerHTML=data.map(r=>"<tr>"+keys.map(k=>`<td>${k==="ID"?`<span class="badge">${r[k]}</span>`:r[k]}</td>`).join("")+"</tr>").join("");
+}
+function log(msg,cls=""){const el=document.getElementById("log");el.innerHTML+=`<br><span class="${cls}">[${new Date().toLocaleTimeString()}]</span> ${msg}`;el.scrollTop=el.scrollHeight}
+document.getElementById("scrape").onclick=async()=>{
+ const urls=getUrls().filter(x=>/^https?:\/\/.+/i.test(x)); if(!urls.length)return;
+ data=[];renderTable();document.getElementById("csv").disabled=true;document.getElementById("xls").disabled=true;
+ document.getElementById("stage").textContent="PROCESANDO";document.getElementById("bar").style.width="0%";document.getElementById("log").innerHTML="";
+ for(let i=0;i<urls.length;i++){
+   log(`Conectando con ${new URL(urls[i]).hostname}…`);
+   await new Promise(r=>setTimeout(r,450));
+   log(`Extrayendo perfil ${profiles[current].c} · ${selected.size} variables…`,"ok");
+   await new Promise(r=>setTimeout(r,300));
+   data.push(buildData([urls[i]])[0]);
+   document.getElementById("bar").style.width=`${Math.round((i+1)/urls.length*100)}%`;
+ }
+ document.getElementById("kRows").textContent=data.length;document.getElementById("kFields").textContent=Object.keys(data[0]).length;
+ document.getElementById("kQuality").textContent="96%";document.getElementById("stage").textContent="COMPLETADO";
+ log(`Proceso finalizado. ${data.length} registros normalizados.`,"ok");renderTable();
+ document.getElementById("csv").disabled=false;document.getElementById("xls").disabled=false;
+};
+function download(name,content,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);}
+function exportCSV(){
+ if(!data.length)return;const keys=Object.keys(data[0]);const esc=x=>`"${String(x??"").replaceAll('"','""')}"`;
+ download(`valuData_${profiles[current].c}_${new Date().toISOString().slice(0,10)}.csv`,[keys.map(esc).join(","),...data.map(r=>keys.map(k=>esc(r[k])).join(","))].join("\\n"),"text/csv;charset=utf-8");
+}
+function exportXLS(){
+ if(!data.length)return;const keys=Object.keys(data[0]);let t=`<html><head><meta charset="utf-8"></head><body><table><tr>${keys.map(k=>`<th>${k}</th>`).join("")}</tr>`;
+ data.forEach(r=>t+="<tr>"+keys.map(k=>`<td>${String(r[k]??"").replaceAll("&","&amp;").replaceAll("<","&lt;")}</td>`).join("")+"</tr>");t+="</table></body></html>";
+ download(`valuData_${profiles[current].c}_${new Date().toISOString().slice(0,10)}.xls`,t,"application/vnd.ms-excel");
+}
+document.getElementById("csv").onclick=exportCSV;document.getElementById("xls").onclick=exportXLS;
+document.getElementById("clear").onclick=()=>{document.getElementById("urls").value="";data=[];renderTable();document.getElementById("log").textContent="[sistema] Datos y URLs limpiados.";document.getElementById("kUrls").textContent="0";document.getElementById("kRows").textContent="0";document.getElementById("kFields").textContent="0";document.getElementById("kQuality").textContent="—";document.getElementById("bar").style.width="0%";document.getElementById("stage").textContent="LISTO";updateUrls()};
+renderTypes();renderVars();
+</script>
+</body>
+</html>
